@@ -4,7 +4,7 @@ The HotZone plugin gives you Information about the tiddler currently focussed.
 
 Everytime a tiddler's body reaches a defined threshold, the value of `$:/temp/focussedTiddler` is updated with the title of the currently focussed tiddler. 
 
-# Inspiration
+## Inspiration
 
 You could write a small widget that listens to the changes of `$:/temp/focussedTiddler` to 
 
