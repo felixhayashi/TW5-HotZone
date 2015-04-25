@@ -1,6 +1,6 @@
 # TiddlyWiki5 HotZone Plugin
 
-The HotZone plugin gives you Information about the tiddler currently focussed.
+The HotZone plugin gives you Information about the tiddler currently in focus.
 
 Everytime a tiddler's body reaches a defined threshold, the value of `$:/temp/focussedTiddler` is updated with the title of the currently focussed tiddler. 
 
