@@ -1,0 +1,8 @@
+# ignore all files with a leading dot
+.*
+!.gitignore
+!.git
+!node_modules
+
+# ignore file in these paths
+src/note_modules/

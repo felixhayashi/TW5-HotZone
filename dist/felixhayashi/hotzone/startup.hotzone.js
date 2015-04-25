@@ -1,0 +1,10 @@
+/*\
+
+title: $:/plugins/felixhayashi/hotzone/hotzone.js
+type: application/javascript
+module-type: startup
+
+@preserve
+
+\*/
+(function(){"use strict";exports.name="hotzone";exports.platforms=["browser"];exports.after=["story"];exports.synchronous=true;exports.startup=function(){var e=require("$:/plugins/felixhayashi/hotzone/config.js").config;var t=null;var i=false;var r=document.getElementsByClassName(e.classNames.storyRiver)[0];var s=$tw.wiki.getTiddlerData(e.references.userConfig,{});var n=isNaN(parseInt(s.focusOffset))?150:parseInt(s.focusOffset);var a=function(t,i,r){if(!(t instanceof Element))return;if(!$tw.utils.hasClass(t,e.classNames.tiddlerFrame))return;var s=t.getElementsByClassName(e.classNames.tiddlerTitle)[0];if(s){var n=s.innerText||s.textContent;return n.trim()}};var o=function(e){if(!i){i=true;window.setTimeout(f,e||0)}};var l=function(t,i){$tw.wiki.addTiddler(new $tw.Tiddler({title:e.references.focussedTiddlerStore,text:t},$tw.wiki.getModificationFields()));if(i){var r=document.getElementsByClassName("hzone-focus")[0];if(r){$tw.utils.removeClass(r,"hzone-focus")}$tw.utils.addClass(i,"hzone-focus")}};var f=function(){console.log("handler called");var s=r.getElementsByClassName(e.classNames.tiddlerFrame);if(s.length){var o=s[0].getBoundingClientRect().left;var f=document.elementFromPoint(o+1,n);var d=a(f);if(d!==t&&$tw.wiki.getTiddler(d)){t=d;l(t,f)}}else{if(t){t="";l(t)}}i=false};var d=function(e){if(!e["$:/HistoryList"])return;if(!$tw.wiki.tiddlerExists("$:/HistoryList"))return;var t=$tw.wiki.getTiddler("$:/HistoryList").fields["current-tiddler"];var i=$tw.wiki.getTiddlerList("$:/StoryList");var r=i.indexOf(t)>=0;r;if(!r)return;o($tw.utils.getAnimationDuration()+100)};var u=function(e){o(250)};$tw.wiki.addEventListener("change",d);window.addEventListener("scroll",u,false);u()}})();

@@ -1,0 +1,13 @@
+{
+  "title": "$:/plugins/felixhayashi/hotzone",
+  "description": "HotZone",
+  "author": "Felix Küppers",
+  "version": "0.0.1",
+  "released": "",
+  "core-version": ">=5.1.5",
+  "source": "https://github.com/felixhayashi/TW5-HotZone",
+  "type": "application/json",
+  "plugin-type": "plugin",
+  "list": "Configuration License Readme",
+  "dependents": ""
+}
