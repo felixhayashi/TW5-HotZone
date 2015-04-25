@@ -2,7 +2,7 @@
 
 The HotZone plugin gives you Information about the tiddler currently in focus.
 
-Everytime a tiddler's body reaches a defined threshold, the value of `$:/temp/focussedTiddler` is updated with the title of the currently focussed tiddler. 
+Everytime a tiddler's body reaches a defined threshold, the value of `$:/temp/focussedTiddler` is updated with the title of the currently focussed tiddler. Moreover, a css class (`hzone-focus`) is added to the tiddler frame to allow css styling.
 
 ## Inspiration
 
