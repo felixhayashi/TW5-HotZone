@@ -1,6 +1,6 @@
 {
   "title": "$:/plugins/felixhayashi/hotzone",
-  "description": "HotZone",
+  "description": "HotZone - Be notified when tiddlers are scrolled into view",
   "author": "Felix Küppers",
   "version": "0.0.1",
   "released": "",

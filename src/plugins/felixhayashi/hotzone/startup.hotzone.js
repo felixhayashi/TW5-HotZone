@@ -31,6 +31,7 @@ var config = require("$:/plugins/felixhayashi/hotzone/config.js").config;
 var curRef = null;
 var isTimeoutActive = false;
 var storyRiverElement = document.getElementsByClassName(config.classNames.storyRiver)[0];
+var frames = storyRiverElement.getElementsByClassName(config.classNames.tiddlerFrame);
 var userConf = $tw.wiki.getTiddlerData(config.references.userConfig, {});
 var focusOffset = (isNaN(parseInt(userConf.focusOffset))
                    ? 150 : parseInt(userConf.focusOffset)); // px
@@ -67,7 +68,9 @@ var extractTitleFromFrame = function(target, frameClass, titleClass) {
  *     be necessary to avoid updates that only result from scroll animations.
  */
 var update = function(delay) {
-      
+  
+  //~ console.log("hotzone:", "update");
+  
   if(!isTimeoutActive) {
     isTimeoutActive = true;
     window.setTimeout(checkForFocusChange, delay || 0);
@@ -84,6 +87,8 @@ var update = function(delay) {
  *     to the focussed tiddler.
  */
 var registerFocusChange = function(tRef, target) {
+  
+  //~ console.log("hotzone:", "changed focus; now at:", tRef);
   
   $tw.wiki.addTiddler(new $tw.Tiddler({
       title: config.references.focussedTiddlerStore,
@@ -110,29 +115,41 @@ var registerFocusChange = function(tRef, target) {
  */
 var checkForFocusChange = function() {
   
-  console.log("handler called");
+  //~ console.log("hotzone:", "check for focus change");
   
-  var frames = storyRiverElement.getElementsByClassName(config.classNames.tiddlerFrame);
-  if(frames.length) {
-    
-    var offsetLeft = frames[0].getBoundingClientRect().left;
 
+  if(frames.length) {
+     
+    // default offset
+    var offsetLeft = 42; 
+    
+    // try to detect the real offset in use; go from top to bottom
+    for(var i = 0; i < frames.length; i++) {
+      if(window.getComputedStyle(frames[i])["display"] === "block") { // zoomin hides frames
+        offsetLeft = frames[i].getBoundingClientRect().left;
+        //~ console.log("hotzone:", "klalal", offsetLeft);
+        break;
+      }
+    }
+    
     // + 1px as sometimes scroll is not correctly on point
     // TODO: this does not work if modal is shown!
     var target = document.elementFromPoint(offsetLeft + 1, focusOffset);
     
+    //~ console.log("hotzone:", "target at offset (", offsetLeft, "; ", focusOffset, "):", target);
+    
     var title = extractTitleFromFrame(target);
+    
+    //~ console.log("hotzone:", "hover target title:", title);
     
     if(title !== curRef && $tw.wiki.getTiddler(title)) { // focus changed
       curRef = title;
       registerFocusChange(curRef, target);
     }
     
-  } else {
-    if(curRef) {
-      curRef = "";
-      registerFocusChange(curRef);
-    }
+  } else if(curRef) {
+    curRef = "";
+    registerFocusChange(curRef);
   }
   
   isTimeoutActive = false;
@@ -144,23 +161,30 @@ var checkForFocusChange = function() {
  */
 var handleChangeEvent = function(changedTiddlers) {
 
-  // Delay scroll handling that results from navigation
-  // A navigation-scroll occurs if the current tiddler of the
-  // history list changed and this tiddler also exists in the
-  // current story list.
-  if(!changedTiddlers["$:/HistoryList"]) return;
-  if(!$tw.wiki.tiddlerExists("$:/HistoryList")) return;
-  
-  var curTiddler = $tw.wiki.getTiddler("$:/HistoryList").fields["current-tiddler"];
-  var storyList = $tw.wiki.getTiddlerList("$:/StoryList");
-  var isInStoryList = storyList.indexOf(curTiddler) >= 0;
-  isInStoryList
-  if(!isInStoryList) return;
-  
-  // navigation-scroll took place; use animation duration as delay
-  // add a bit of delay to make sure the scroll handler is not triggered
-  // by the scroll listener
-  update($tw.utils.getAnimationDuration() + 100);
+
+  if(changedTiddlers["$:/HistoryList"]) {
+    
+    // A navigation-scroll occurs if the current tiddler of the
+    // history list changed and this tiddler also exists in the
+    // current story list.
+    
+    if(!$tw.wiki.tiddlerExists("$:/HistoryList")) return;
+    
+    var curTiddler = $tw.wiki.getTiddler("$:/HistoryList").fields["current-tiddler"];
+    var storyList = $tw.wiki.getTiddlerList("$:/StoryList");
+    var isInStoryList = storyList.indexOf(curTiddler) >= 0;
+    if(!isInStoryList) return;
+    
+    // navigation-scroll took place; use animation duration as delay
+    // add a bit of delay to make sure the scroll handler is not triggered
+    // by the scroll listener
+    update($tw.utils.getAnimationDuration() + 100);
+    
+  } else if(changedTiddlers["$:/StoryList"]) {
+    
+    update($tw.utils.getAnimationDuration() + 100);
+    
+  }
   
 };
 
