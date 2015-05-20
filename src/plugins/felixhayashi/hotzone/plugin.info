@@ -2,7 +2,7 @@
   "title": "$:/plugins/felixhayashi/hotzone",
   "description": "HotZone - Be notified when tiddlers are scrolled into view",
   "author": "Felix Küppers",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "released": "",
   "core-version": ">=5.1.5",
   "source": "https://github.com/felixhayashi/TW5-HotZone",

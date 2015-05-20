@@ -67,9 +67,14 @@ var extractTitleFromFrame = function(target, frameClass, titleClass) {
  *     before we check which tiddler is actually focussed. A delay may
  *     be necessary to avoid updates that only result from scroll animations.
  */
-var update = function(delay) {
+var update = function(delay, force) {
   
   //~ console.log("hotzone:", "update");
+  
+  if(force) {
+    // reset current reference to force a reassignement
+    curRef = null;
+  }
   
   if(!isTimeoutActive) {
     isTimeoutActive = true;
@@ -161,6 +166,7 @@ var checkForFocusChange = function() {
  */
 var handleChangeEvent = function(changedTiddlers) {
 
+  //~ console.log("hotzone:", "handleChangeEvent", changedTiddlers);
 
   if(changedTiddlers["$:/HistoryList"]) {
     
@@ -182,7 +188,8 @@ var handleChangeEvent = function(changedTiddlers) {
     
   } else if(changedTiddlers["$:/StoryList"]) {
     
-    update($tw.utils.getAnimationDuration() + 100);
+    //~ console.log("hotzone:", "story list change triggers recalculation");
+    update($tw.utils.getAnimationDuration() + 100, true);
     
   }
   
