@@ -31,7 +31,6 @@ var config = require("$:/plugins/felixhayashi/hotzone/config.js").config;
 var curRef = null;
 var isTimeoutActive = false;
 var storyRiverElement = document.getElementsByClassName(config.classNames.storyRiver)[0];
-var frames = storyRiverElement.getElementsByClassName(config.classNames.tiddlerFrame);
 var userConf = $tw.wiki.getTiddlerData(config.references.userConfig, {});
 var focusOffset = (isNaN(parseInt(userConf.focusOffset))
                    ? 150 : parseInt(userConf.focusOffset)); // px
@@ -58,8 +57,8 @@ var extractTitleFromFrame = function(target, frameClass, titleClass) {
 };
 
 /**
- * Calls the scroll handler after with a certain delay. If no delay
- * is specified, the handler is instantly called. If a delay
+ * Calls the scroll handler with a certain delay. If no delay
+ * is specified, the handler is called instantly. If a delay
  * is specified then any new call to update is ignored until the delay
  * is over and the handler has been called.
  * 
@@ -67,15 +66,10 @@ var extractTitleFromFrame = function(target, frameClass, titleClass) {
  *     before we check which tiddler is actually focussed. A delay may
  *     be necessary to avoid updates that only result from scroll animations.
  */
-var update = function(delay, force) {
+var update = function(delay) {
   
-  //~ console.log("hotzone:", "update");
-  
-  if(force) {
-    // reset current reference to force a reassignement
-    curRef = null;
-  }
-  
+  // console.log("hotzone:", "update");
+    
   if(!isTimeoutActive) {
     isTimeoutActive = true;
     window.setTimeout(checkForFocusChange, delay || 0);
@@ -93,7 +87,7 @@ var update = function(delay, force) {
  */
 var registerFocusChange = function(tRef, target) {
   
-  //~ console.log("hotzone:", "changed focus; now at:", tRef);
+  // console.log("hotzone:", "changed focus; now at:", tRef);
   
   $tw.wiki.addTiddler(new $tw.Tiddler({
       title: config.references.focussedTiddlerStore,
@@ -120,36 +114,40 @@ var registerFocusChange = function(tRef, target) {
  */
 var checkForFocusChange = function() {
   
-  //~ console.log("hotzone:", "check for focus change");
+  // console.log("hotzone:", "check for focus change");
   
-
-  if(frames.length) {
-     
-    // default offset
-    var offsetLeft = 42; 
+  isTimeoutActive = false;
+  
+  var tObj = $tw.wiki.getTiddler("$:/StoryList");
+  if(tObj && tObj.fields.list.length) {
     
-    // try to detect the real offset in use; go from top to bottom
-    for(var i = 0; i < frames.length; i++) {
-      if(window.getComputedStyle(frames[i])["display"] === "block") { // zoomin hides frames
-        offsetLeft = frames[i].getBoundingClientRect().left;
-        //~ console.log("hotzone:", "klalal", offsetLeft);
-        break;
+    var target = null;
+    var minDistance = Number.MAX_VALUE;
+    var childElements = storyRiverElement.children;
+    var tiddlerFrameClass = config.classNames.tiddlerFrame;
+    for(var i = childElements.length; i--;) {
+      if($tw.utils.hasClass(childElements[i], tiddlerFrameClass)) {
+        var frameElRect = childElements[i].getBoundingClientRect();
+        var distance = Math.min(
+                         Math.abs(focusOffset - frameElRect.top),
+                         Math.abs(focusOffset - frameElRect.bottom)
+                      );
+        if(distance < minDistance) {
+          // register frame with closer distance
+          target = childElements[i];
+          minDistance = distance;
+        }
       }
     }
-    
-    // + 1px as sometimes scroll is not correctly on point
-    // TODO: this does not work if modal is shown!
-    var target = document.elementFromPoint(offsetLeft + 1, focusOffset);
-    
-    //~ console.log("hotzone:", "target at offset (", offsetLeft, "; ", focusOffset, "):", target);
-    
+            
     var title = extractTitleFromFrame(target);
     
-    //~ console.log("hotzone:", "hover target title:", title);
+    // console.log("hotzone:", "Target", title, "distance to threshold", minDistance);
     
     if(title !== curRef && $tw.wiki.getTiddler(title)) { // focus changed
       curRef = title;
       registerFocusChange(curRef, target);
+      return;
     }
     
   } else if(curRef) {
@@ -157,7 +155,7 @@ var checkForFocusChange = function() {
     registerFocusChange(curRef);
   }
   
-  isTimeoutActive = false;
+  
   
 };
 
@@ -166,7 +164,7 @@ var checkForFocusChange = function() {
  */
 var handleChangeEvent = function(changedTiddlers) {
 
-  //~ console.log("hotzone:", "handleChangeEvent", changedTiddlers);
+  // console.log("hotzone:", "handleChangeEvent", changedTiddlers);
 
   if(changedTiddlers["$:/HistoryList"]) {
     
@@ -187,9 +185,9 @@ var handleChangeEvent = function(changedTiddlers) {
     update($tw.utils.getAnimationDuration() + 100);
     
   } else if(changedTiddlers["$:/StoryList"]) {
-    
-    //~ console.log("hotzone:", "story list change triggers recalculation");
-    update($tw.utils.getAnimationDuration() + 100, true);
+        
+    // console.log("hotzone:", "story list change triggers recalculation");
+    update($tw.utils.getAnimationDuration() + 100);
     
   }
   
