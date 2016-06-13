@@ -57,30 +57,37 @@ var extractTitleFromFrame = function(target, frameClass, titleClass) {
 
 };
 
-/**
- * Calls the scroll handler after with a certain delay. If no delay
- * is specified, the handler is instantly called. If a delay
- * is specified then any new call to update is ignored until the delay
- * is over and the handler has been called.
- * 
- * @param {number} delay - Time after a scroll event that has to elapse
- *     before we check which tiddler is actually focussed. A delay may
- *     be necessary to avoid updates that only result from scroll animations.
- */
-var update = function(delay, force) {
-  
-  //~ console.log("hotzone:", "update");
-  
-  if(force) {
-    // reset current reference to force a reassignement
-    curRef = null;
-  }
-  
-  if(!isTimeoutActive) {
-    isTimeoutActive = true;
-    window.setTimeout(checkForFocusChange, delay || 0);
-  }
+// Return a function wrapping `func` and limiting the frequency of executions of
+// `func`.
+//
+// Calls to the resulting function with a truthy value for `stopOthers`
+// cause any call with falsey `stopOthers` value to be a no-op for `wait` milliseconds,
+// after which the wrapped `func` is called. Any previous delayed executions are cancelled.
+//
+// Calls with falsey `stopOthers` occuring outside such a period are debounced
+// such that `func` will be called `wait` milliseconds after the last call.
+var debounce = function(func) {
+  var timeout;
+  var dontStart = false;
+  return function(wait, stopOthers) {
+    var context = this;
 
+    if (dontStart && !stopOthers) {
+      // do nothing
+    } else {
+      dontStart = stopOthers
+
+      if (timeout != null) {
+        clearTimeout(timeout);
+      }
+
+      timeout = setTimeout(function () {
+        timeout = null;
+        dontStart = false;
+        func.apply(context);
+      }, wait);
+    }
+  };
 };
 
 /**
@@ -161,6 +168,8 @@ var checkForFocusChange = function() {
   
 };
 
+var debouncedCheckForFocusChange = debounce(checkForFocusChange);
+
 /**
  * Handler to react to tiddler changes
  */
@@ -184,13 +193,14 @@ var handleChangeEvent = function(changedTiddlers) {
     // navigation-scroll took place; use animation duration as delay
     // add a bit of delay to make sure the scroll handler is not triggered
     // by the scroll listener
-    update($tw.utils.getAnimationDuration() + 100);
+    debouncedCheckForFocusChange($tw.utils.getAnimationDuration() + 5, true);
     
   } else if(changedTiddlers["$:/StoryList"]) {
     
     //~ console.log("hotzone:", "story list change triggers recalculation");
-    update($tw.utils.getAnimationDuration() + 100, true);
     
+    curRef = null;
+    debouncedCheckForFocusChange($tw.utils.getAnimationDuration() + 5, true);
   }
   
 };
@@ -201,10 +211,10 @@ var handleChangeEvent = function(changedTiddlers) {
 var handleScrollEvent = function(event) {
     
   // update with a delay of 250ms to avoid uncessary calculations
-  update(250);
+  debouncedCheckForFocusChange(300, false);
   
 };
-  
+
 /**************************** RUNTIME ******************************/
 
 // register listeners
