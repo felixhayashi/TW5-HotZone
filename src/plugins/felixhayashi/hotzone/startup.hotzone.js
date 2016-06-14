@@ -29,9 +29,7 @@ var config = require("$:/plugins/felixhayashi/hotzone/config.js").config;
 /*************************** VARIABLES *****************************/
 
 var curRef = null;
-var isTimeoutActive = false;
 var storyRiverElement = document.getElementsByClassName(config.classNames.storyRiver)[0];
-var frames = storyRiverElement.getElementsByClassName(config.classNames.tiddlerFrame);
 var userConf = $tw.wiki.getTiddlerData(config.references.userConfig, {});
 var focusOffset = (isNaN(parseInt(userConf.focusOffset))
                    ? 150 : parseInt(userConf.focusOffset)); // px
@@ -55,6 +53,86 @@ var extractTitleFromFrame = function(target, frameClass, titleClass) {
     return title.trim();
   }
 
+};
+
+/**
+ * Set a flag (class) to the active tiddler frame element and also
+ * register the change at the focussed-tiddler-store.
+ * 
+ * @param {string} tRef - The title of the newly focussed tiddler.
+ * @param {Element} [target] - If available, the frame that corresponds
+ *     to the focussed tiddler.
+ */
+var registerFocusChange = function(tRef, target) {
+  
+  // console.log("hotzone:", "changed focus; now at:", tRef);
+  
+  $tw.wiki.addTiddler(new $tw.Tiddler({
+      title: config.references.focussedTiddlerStore,
+      text: tRef
+    },
+    $tw.wiki.getModificationFields()
+  ));
+  
+  if(target) {
+    var prevTarget = document.getElementsByClassName("hzone-focus")[0];
+    // remove class from previous
+    if(prevTarget) {
+      $tw.utils.removeClass(prevTarget, "hzone-focus");
+    }
+    // add class to current
+    $tw.utils.addClass(target, "hzone-focus");
+  }
+  
+};
+
+/**
+ * Tries to extract the title from the frame that is currently in
+ * focus and to register any changes.
+ */
+var checkForFocusChange = function() {
+  
+  // console.log("hotzone:", "check for focus change");
+  
+  var tObj = $tw.wiki.getTiddler("$:/StoryList");
+  if(tObj && tObj.fields.list.length) {
+    
+    var target = null;
+    var minDistance = Number.MAX_VALUE;
+    var childElements = storyRiverElement.children;
+    var tiddlerFrameClass = config.classNames.tiddlerFrame;
+    for(var i = childElements.length; i--;) {
+      if($tw.utils.hasClass(childElements[i], tiddlerFrameClass)) {
+        var frameElRect = childElements[i].getBoundingClientRect();
+        var distance = Math.min(
+                         Math.abs(focusOffset - frameElRect.top),
+                         Math.abs(focusOffset - frameElRect.bottom)
+                      );
+        if(distance < minDistance) {
+          // register frame with closer distance
+          target = childElements[i];
+          minDistance = distance;
+        }
+      }
+    }
+            
+    var title = extractTitleFromFrame(target);
+    
+    // console.log("hotzone:", "Target", title, "distance to threshold", minDistance);
+    
+    if(title !== curRef && $tw.wiki.getTiddler(title)) { // focus changed
+      curRef = title;
+      registerFocusChange(curRef, target);
+      return;
+    }
+    
+  } else if(curRef) {
+    curRef = "";
+    registerFocusChange(curRef);
+  }
+  
+  
+  
 };
 
 // Return a function wrapping `func` and limiting the frequency of executions of
@@ -90,92 +168,14 @@ var debounce = function(func) {
   };
 };
 
-/**
- * Set a flag (class) to the active tiddler frame element and also
- * register the change at the focussed-tiddler-store.
- * 
- * @param {string} tRef - The title of the newly focussed tiddler.
- * @param {Element} [target] - If available, the frame that corresponds
- *     to the focussed tiddler.
- */
-var registerFocusChange = function(tRef, target) {
-  
-  //~ console.log("hotzone:", "changed focus; now at:", tRef);
-  
-  $tw.wiki.addTiddler(new $tw.Tiddler({
-      title: config.references.focussedTiddlerStore,
-      text: tRef
-    },
-    $tw.wiki.getModificationFields()
-  ));
-  
-  if(target) {
-    var prevTarget = document.getElementsByClassName("hzone-focus")[0];
-    // remove class from previous
-    if(prevTarget) {
-      $tw.utils.removeClass(prevTarget, "hzone-focus");
-    }
-    // add class to current
-    $tw.utils.addClass(target, "hzone-focus");
-  }
-  
-};
-
-/**
- * Tries to extract the title from the frame that is currently in
- * focus and to register any changes.
- */
-var checkForFocusChange = function() {
-  
-  //~ console.log("hotzone:", "check for focus change");
-  
-
-  if(frames.length) {
-     
-    // default offset
-    var offsetLeft = 42; 
-    
-    // try to detect the real offset in use; go from top to bottom
-    for(var i = 0; i < frames.length; i++) {
-      if(window.getComputedStyle(frames[i])["display"] === "block") { // zoomin hides frames
-        offsetLeft = frames[i].getBoundingClientRect().left;
-        //~ console.log("hotzone:", "klalal", offsetLeft);
-        break;
-      }
-    }
-    
-    // + 1px as sometimes scroll is not correctly on point
-    // TODO: this does not work if modal is shown!
-    var target = document.elementFromPoint(offsetLeft + 1, focusOffset);
-    
-    //~ console.log("hotzone:", "target at offset (", offsetLeft, "; ", focusOffset, "):", target);
-    
-    var title = extractTitleFromFrame(target);
-    
-    //~ console.log("hotzone:", "hover target title:", title);
-    
-    if(title !== curRef && $tw.wiki.getTiddler(title)) { // focus changed
-      curRef = title;
-      registerFocusChange(curRef, target);
-    }
-    
-  } else if(curRef) {
-    curRef = "";
-    registerFocusChange(curRef);
-  }
-  
-  isTimeoutActive = false;
-  
-};
-
-var debouncedCheckForFocusChange = debounce(checkForFocusChange);
+var update = debounce(checkForFocusChange);
 
 /**
  * Handler to react to tiddler changes
  */
 var handleChangeEvent = function(changedTiddlers) {
 
-  //~ console.log("hotzone:", "handleChangeEvent", changedTiddlers);
+  // console.log("hotzone:", "handleChangeEvent", changedTiddlers);
 
   if(changedTiddlers["$:/HistoryList"]) {
     
@@ -193,14 +193,13 @@ var handleChangeEvent = function(changedTiddlers) {
     // navigation-scroll took place; use animation duration as delay
     // add a bit of delay to make sure the scroll handler is not triggered
     // by the scroll listener
-    debouncedCheckForFocusChange($tw.utils.getAnimationDuration() + 5, true);
+    update($tw.utils.getAnimationDuration() + 10, true);
     
   } else if(changedTiddlers["$:/StoryList"]) {
+        
+    // console.log("hotzone:", "story list change triggers recalculation");
+    update($tw.utils.getAnimationDuration() + 10, true);
     
-    //~ console.log("hotzone:", "story list change triggers recalculation");
-    
-    curRef = null;
-    debouncedCheckForFocusChange($tw.utils.getAnimationDuration() + 5, true);
   }
   
 };
@@ -210,11 +209,11 @@ var handleChangeEvent = function(changedTiddlers) {
  */
 var handleScrollEvent = function(event) {
     
-  // update with a delay of 250ms to avoid uncessary calculations
-  debouncedCheckForFocusChange(300, false);
+  // update with a delay of 300ms to avoid uncessary calculations
+  update(300, false);
   
 };
-
+  
 /**************************** RUNTIME ******************************/
 
 // register listeners
@@ -227,3 +226,4 @@ handleScrollEvent();
 };
 
 })();
+
