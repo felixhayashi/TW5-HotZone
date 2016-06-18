@@ -29,7 +29,6 @@ var config = require("$:/plugins/felixhayashi/hotzone/config.js").config;
 /*************************** VARIABLES *****************************/
 
 var curRef = null;
-var isTimeoutActive = false;
 var storyRiverElement = document.getElementsByClassName(config.classNames.storyRiver)[0];
 var userConf = $tw.wiki.getTiddlerData(config.references.userConfig, {});
 var focusOffset = (isNaN(parseInt(userConf.focusOffset))
@@ -52,27 +51,6 @@ var extractTitleFromFrame = function(target, frameClass, titleClass) {
   if(el) {
     var title = el.innerText || el.textContent;
     return title.trim();
-  }
-
-};
-
-/**
- * Calls the scroll handler with a certain delay. If no delay
- * is specified, the handler is called instantly. If a delay
- * is specified then any new call to update is ignored until the delay
- * is over and the handler has been called.
- * 
- * @param {number} delay - Time after a scroll event that has to elapse
- *     before we check which tiddler is actually focussed. A delay may
- *     be necessary to avoid updates that only result from scroll animations.
- */
-var update = function(delay) {
-  
-  // console.log("hotzone:", "update");
-    
-  if(!isTimeoutActive) {
-    isTimeoutActive = true;
-    window.setTimeout(checkForFocusChange, delay || 0);
   }
 
 };
@@ -116,8 +94,6 @@ var checkForFocusChange = function() {
   
   // console.log("hotzone:", "check for focus change");
   
-  isTimeoutActive = false;
-  
   var tObj = $tw.wiki.getTiddler("$:/StoryList");
   if(tObj && tObj.fields.list.length) {
     
@@ -159,6 +135,41 @@ var checkForFocusChange = function() {
   
 };
 
+// Return a function wrapping `func` and limiting the frequency of executions of
+// `func`.
+//
+// Calls to the resulting function with a truthy value for `stopOthers`
+// cause any call with falsey `stopOthers` value to be a no-op for `wait` milliseconds,
+// after which the wrapped `func` is called. Any previous delayed executions are cancelled.
+//
+// Calls with falsey `stopOthers` occuring outside such a period are debounced
+// such that `func` will be called `wait` milliseconds after the last call.
+var debounce = function(func) {
+  var timeout;
+  var dontStart = false;
+  return function(wait, stopOthers) {
+    var context = this;
+
+    if (dontStart && !stopOthers) {
+      // do nothing
+    } else {
+      dontStart = stopOthers
+
+      if (timeout != null) {
+        clearTimeout(timeout);
+      }
+
+      timeout = setTimeout(function () {
+        timeout = null;
+        dontStart = false;
+        func.apply(context);
+      }, wait);
+    }
+  };
+};
+
+var update = debounce(checkForFocusChange);
+
 /**
  * Handler to react to tiddler changes
  */
@@ -182,12 +193,12 @@ var handleChangeEvent = function(changedTiddlers) {
     // navigation-scroll took place; use animation duration as delay
     // add a bit of delay to make sure the scroll handler is not triggered
     // by the scroll listener
-    update($tw.utils.getAnimationDuration() + 100);
+    update($tw.utils.getAnimationDuration() + 10, true);
     
   } else if(changedTiddlers["$:/StoryList"]) {
         
     // console.log("hotzone:", "story list change triggers recalculation");
-    update($tw.utils.getAnimationDuration() + 100);
+    update($tw.utils.getAnimationDuration() + 10, true);
     
   }
   
@@ -198,8 +209,8 @@ var handleChangeEvent = function(changedTiddlers) {
  */
 var handleScrollEvent = function(event) {
     
-  // update with a delay of 250ms to avoid uncessary calculations
-  update(250);
+  // update with a delay of 300ms to avoid uncessary calculations
+  update(300, false);
   
 };
   
@@ -215,3 +226,4 @@ handleScrollEvent();
 };
 
 })();
+
