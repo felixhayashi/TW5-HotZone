@@ -135,15 +135,17 @@ var checkForFocusChange = function() {
   
 };
 
-// Return a function wrapping `func` and limiting the frequency of executions of
-// `func`.
-//
-// Calls to the resulting function with a truthy value for `stopOthers`
-// cause any call with falsey `stopOthers` value to be a no-op for `wait` milliseconds,
-// after which the wrapped `func` is called. Any previous delayed executions are cancelled.
-//
-// Calls with falsey `stopOthers` occuring outside such a period are debounced
-// such that `func` will be called `wait` milliseconds after the last call.
+/**
+ * Return a function wrapping `func` and limiting the frequency of executions of
+ * `func`.
+ *
+ * Calls to the resulting function with a truthy value for `stopOthers`
+ * cause any call with falsey `stopOthers` value to be a no-op for `wait` milliseconds,
+ * after which the wrapped `func` is called. Any previous delayed executions are cancelled.
+ *
+ * Calls with falsey `stopOthers` occuring outside such a period are debounced
+ * such that `func` will be called `wait` milliseconds after the last call.
+ */
 var debounce = function(func) {
   var timeout;
   var dontStart = false;
