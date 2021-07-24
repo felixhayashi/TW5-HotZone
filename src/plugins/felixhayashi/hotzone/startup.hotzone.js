@@ -17,7 +17,7 @@ module-type: startup
 // Export name and synchronous status
 exports.name = "hotzone";
 exports.platforms = ["browser"];
-exports.after = ["story"];
+exports.after = ["render"];
 exports.synchronous = true;
 
 exports.startup = function() {
